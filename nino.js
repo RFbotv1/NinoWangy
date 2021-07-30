@@ -32,6 +32,7 @@ const axios = require("axios")
 const fs = require("fs-extra")
 const util = require('util')
 const got = require("got");
+const qrcodes = require('qrcode');
 const imgbb = require('imgbb-uploader');
 const os = require('os');
 
@@ -49,7 +50,8 @@ const { cmdadd } = require('./lib/totalcmd.js')
 const { uptotele, uploadFile, RESTfulAPI, uploadImages } = require('./lib/uploadimage')
 const { isGame, gameAdd, givegame, cekGLimit } = require("./lib/limit");
 const { onGoing, dadu, asupan } = require("./lib/otakudesu.js")
-const { webp2gifFile, igDownloader, TiktokDownloader, mediafireDl } = require("./lib/gif.js")
+const { mediafireDl } = require('./lib/mediafire.js')
+const { webp2gifFile, igDownloader, TiktokDownloader } = require("./lib/gif.js")
 const { y2mateA, y2mateV } = require('./lib/y2mate')
 const { ythd } = require('./lib/ytdl')
 const premium = require("./lib/premium");
@@ -232,6 +234,11 @@ module.exports = nino = async (nino, mek) => {
 
         const gcount = setting.gcount
         
+        const listmsg = (from, title, desc, list) => { // ngeread nya pake rowsId, jadi command nya ga keliatan
+            let po = nino.prepareMessageFromContent(from, {"listMessage": {"title": title,"description": desc,"buttonText": "Pilih Disini","footerText": "Jangan Lupa Donasi Ya Kak ☕","listType": "SINGLE_SELECT","sections": list}}, {})
+            return nino.relayWAMessage(po, {waitForAck: true})
+        }
+        
         const isUrl = (url) => {
             return url.match(new RegExp(/https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&/=]*)/, 'gi'))
         }
@@ -246,28 +253,41 @@ module.exports = nino = async (nino, mek) => {
         }
         const reply = (teks) => {
 	      nino.sendMessage(from, teks, text, {quoted:mek, thumbnail: fakeimage})
-}
+        }
         const sendMess = (hehe, teks) => {
            nino.sendMessage(hehe, teks, text)
-}
+        }
         const mentions = (teks, memberr, id) => {
            (id == null || id == undefined || id == false) ? nino.sendMessage(from, {text: teks.trim(), jpegThumbnail: fs.readFileSync('./media/wpmobile.png')}, extendedText, { sendEphemeral: true, contextInfo: { "mentionedJid": memberr } }) : nino.sendMessage(from, {text: teks.trim(), jpegThumbnail: fs.readFileSync('./media/wpmobile.png')}, extendedText, { sendEphemeral: true, quoted: mek, contextInfo: { "mentionedJid": memberr } })
-}
+        }
         const sendText = (from, text) => {
            nino.sendMessage(from, text, MessageType.text)
-}
-       const textImg = (teks) => {
-          return nino.sendMessage(from, teks, text, {quoted: mek, thumbnail: fs.readFileSync('./media/Nino.jpg')})
-}
-       const freply = { key: { fromMe: false, participant: `0@s.whatsapp.net`, ...(from ? { remoteJid: '16504228206@s.whatsapp.net' } : {}) }, message: { "contactMessage": { "displayName": `${pushname}`, "vcard": `BEGIN:VCARD\nVERSION:3.0\nN:XL;${pushname},;;;\nFN:${pushname},\nitem1.TEL;waid=${senderr.split('@')[0]}:${senderr.split('@')[0]}\nitem1.X-ABLabel:Ponsel\nEND:VCARD`, "jpegThumbnail":fs.readFileSync('./media/Nakano.jpg')
-}}}
+        }
+        const textImg = (teks) => {
+           return nino.sendMessage(from, teks, text, {quoted: mek, thumbnail: fs.readFileSync('./media/wpmobile.png')})
+        }
+        const freply = { key: { fromMe: false, participant: `0@s.whatsapp.net`, ...(from ? { remoteJid: '16504228206@s.whatsapp.net' } : {}) }, message: { "contactMessage": { "displayName": `${pushname}`, "vcard": `BEGIN:VCARD\nVERSION:3.0\nN:XL;${pushname},;;;\nFN:${pushname},\nitem1.TEL;waid=${senderr.split('@')[0]}:${senderr.split('@')[0]}\nitem1.X-ABLabel:Ponsel\nEND:VCARD`, "jpegThumbnail":fs.readFileSync('./media/Nakano.jpg')
+        }}}
        const math = (teks) => {
            return Math.floor(teks)
-}
+       }
        const kick = function(from, orangnya){
 	       for (let i of orangnya){
 	       nino.groupRemove(from, [i])
-}
+        }
+        }
+       const kickMember = async(id, target = []) => {
+           let group = await nino.groupMetadata(id)
+           let owner = group.owner.replace("c.us", "s.whatsapp.net")
+           let me = nino.user.jid
+           for (i of target) {
+           if (!i.includes(me) && !i.includes(owner)) {
+           await nino.groupRemove(to, [i])
+        } else {
+           await nino.sendMessage(id, "Not Premited!", "conversation")
+           break
+        }
+    }
 }
        const add = function(from, orangnya){
 	       nino.groupAdd(from, orangnya)
@@ -283,67 +303,67 @@ module.exports = nino = async (nino, mek) => {
 	       for (let i of members){
 	       ane.push(i.jid)
 }
-	       nino.sendMessage(from, {text:text, jpegThumbnail:fs.readFileSync('media/Nakano.jpg')}, 'extendedTextMessage', {sendEphemeral: true, contextInfo: {"mentionedJid": ane}})
+	       nino.sendMessage(from, {text:text, jpegThumbnail:fs.readFileSync('media/Nakano.jpg')}, 'extendedTextMessage', {contextInfo: {"mentionedJid": ane}})
 }  
       const sendWebp = async(to, url) => {
-          var names = Date.now() / 10000;
-          var download = function (uri, filename, callback) {
-          request.head(uri, function (err, res, body) {
-          request(uri).pipe(fs.createWriteStream(filename)).on('close', callback);
+           var names = Date.now() / 10000;
+           var download = function (uri, filename, callback) {
+           request.head(uri, function (err, res, body) {
+           request(uri).pipe(fs.createWriteStream(filename)).on('close', callback);
 });
 };
-          download(url, './sticker' + names + '.png', async function () {
-          console.log('selesai');
-          let filess = './sticker' + names + '.png'
-          let asw = './sticker' + names + '.webp'
-          exec(`ffmpeg -i ${filess} -vf "scale=512:512:force_original_aspect_ratio=increase,fps=40, crop=512:512" ${asw}`, (err) => {
-          fs.unlinkSync(filess)
-          if (err) return reply(`${err}`)
-          exec(`webpmux -set exif ./sticker/data.exif ${asw} -o ${asw}`, async (error) => {
-          if (error) return reply(`${error}`)
-          nino.sendMessage(from, fs.readFileSync(asw), sticker, {sendEphemeral:true, quoted:mek})
-          fs.unlinkSync(asw)
+           download(url, './sticker' + names + '.png', async function () {
+           console.log('selesai');
+           let filess = './sticker' + names + '.png'
+           let asw = './sticker' + names + '.webp'
+           exec(`ffmpeg -i ${filess} -vf "scale=512:512:force_original_aspect_ratio=increase,fps=40, crop=512:512" ${asw}`, (err) => {
+           fs.unlinkSync(filess)
+           if (err) return reply(`${err}`)
+           exec(`webpmux -set exif ./sticker/data.exif ${asw} -o ${asw}`, async (error) => {
+           if (error) return reply(`${error}`)
+           nino.sendMessage(from, fs.readFileSync(asw), sticker, {sendEphemeral:true, quoted:mek})
+           fs.unlinkSync(asw)
 });
 });
 });
 }
        const sendMediaURL = async(to, url, text="", mids=[]) =>{
-         if(mids.length > 0){
-         text = normalizeMention(to, text, mids)
+           if(mids.length > 0){
+           text = normalizeMention(to, text, mids)
 }
-         const fn = Date.now() / 10000;
-         const filename = fn.toString()
-         let mime = ""
-         var download = function (uri, filename, callback) {
-         request.head(uri, function (err, res, body) {
-         mime = res.headers['content-type']
-         request(uri).pipe(fs.createWriteStream(filename)).on('close', callback);
+           const fn = Date.now() / 10000;
+           const filename = fn.toString()
+           let mime = ""
+           var download = function (uri, filename, callback) {
+           request.head(uri, function (err, res, body) {
+           mime = res.headers['content-type']
+           request(uri).pipe(fs.createWriteStream(filename)).on('close', callback);
 });
 };
-          download(url, filename, async function () {
-          console.log('done');
-          let media = fs.readFileSync(filename)
-          let type = mime.split("/")[0]+"Message"
-          if(mime === "image/gif"){
-          type = MessageType.video
-          mime = Mimetype.gif
+           download(url, filename, async function () {
+           console.log('done');
+           let media = fs.readFileSync(filename)
+           let type = mime.split("/")[0]+"Message"
+           if(mime === "image/gif"){
+           type = MessageType.video
+           mime = Mimetype.gif
 }
-          if(mime.split("/")[0] === "audio"){
-          mime = Mimetype.mp4Audio
+           if(mime.split("/")[0] === "audio"){
+           mime = Mimetype.mp4Audio
 }
-          nino.sendMessage(to, media, type, {sendEphemeral: true, quoted: mek, mimetype: mime, caption: text,contextInfo: {"mentionedJid": mids}})
-                    
-          fs.unlinkSync(filename)
+           nino.sendMessage(to, media, type, {quoted: mek, mimetype: mime, caption: text, thumbnail: Buffer.alloc(0), contextInfo: {"mentionedJid": mids}})
+                     
+           fs.unlinkSync(filename)
 });
-}   
+}
       const sendFileFromUrl = async(link, type, options) => {
-          hasil = await getBuffer(link)
-	      nino.sendMessage(from, hasil, type, options).catch(e => {
-	      fetch(link).then((hasil) => {
-	      nino.sendMessage(from, hasil, type, options).catch(e => {
-	      nino.sendMessage(from, { url : link }, type, options).catch(e => {
-	      reply('_[ ! ] Error Gagal Dalam Mendownload Dan Mengirim Media_')
-	      console.log(e)
+           hasil = await getBuffer(link)
+	       nino.sendMessage(from, hasil, type, options).catch(e => {
+	       fetch(link).then((hasil) => {
+	       nino.sendMessage(from, hasil, type, options).catch(e => {
+	       nino.sendMessage(from, { url : link }, type, options).catch(e => {
+	       reply('_[ ! ] Error Gagal Dalam Mendownload Dan Mengirim Media_')
+	       console.log(e)
 })
 })
 })
@@ -510,19 +530,14 @@ module.exports = nino = async (nino, mek) => {
             }
         }
         
-			// MUTE
-        if (isMuted){
-            if (!isPremium && !isOwner) return 
-            if (budy.toLowerCase() === `${prefix}unmute`){
-                let anu = mute.indexOf(from)
-                mute.splice(anu, 1)
-                fs.writeFileSync('./database/group/mute.json', JSON.stringify(mute))
-                reply(`*...:* *𝙈𝙐𝙏𝙀 𝙊𝙁𝙁* *:...*\n\nPerhatian untuk member grup\nBot telah di unmute di grup ${groupName} , Silahkan menggunakan bot dengan sewajarnya\n\n_*${botName}*_`)
-            }
-        }
         // Sewa
              _sewa.expiredCheck(nino, sewa)
              
+        // MUTE
+             if (isMuted){
+             if (!isGroupAdmins && !isPremium) return
+ }
+            
               const getWin = (userId) => {
               let position = false
               Object.keys(_win).forEach((i) => {
@@ -731,6 +746,9 @@ module.exports = nino = async (nino, mek) => {
 		    fs.writeFileSync('./database/user/afk.json', JSON.stringify(_afk))
 		}
 	    }
+	
+	    // Auto Read
+        nino.chatRead(from, "read")
         
        // CMD
         if (isCmd && !isGroup)
@@ -750,65 +768,65 @@ module.exports = nino = async (nino, mek) => {
 		    nino.sendMessage(from, teks, text, {quoted: freply })
 }
 	    if (isCmd && !isRegister) return reply(`You are not verified\n\nReply this chat and send bot password\n\nHint : \nPassword contains 4 digit number\nCheck password at: https://nino-chan02.github.io`)
-       
-       // Button
-        if(selectedButton == 'OWNER'){
-             sendKontak(from, `${owner}`, `${ownerName}`, 'Sibukk!!')
-        } else if(selectedButton == 'RULES'){
-             nino.sendMessage(from, rulesBot(prefix), MessageType.text, {quoted: mek})
-}
       
             switch(command){
            
         case 'owner':
-              sendKontak(from, `${owner}`, `${ownerName}`, 'Sibukk!!')
-              break 
-        case 'menu':
-        case 'help':
- menu =`
-╭─「 *INFORMATION* 」
-│
-│ ◪ *Owner : Nino*
-│ ◪ *Total Hit : ${totalhit} Hit*
-│ ◪ *Prefix : Multi Prefix*
-│ ◪ *Runtime* : ${runtime(process.uptime())}
-│
-├「 *STATUS USER* 」
-│
-│ ❏ 𝙉𝙖𝙢𝙚 : *${pushname}*
-│ ❏ 𝘼𝙋𝙄 : wa.me/${sender.split("@")[0]}
-│ ❏ 𝙍𝙖𝙣𝙠 : ${role}
-│ ❏ 𝙋𝙍𝙀𝙈𝙄𝙐𝙈 : ${isPremium ? '_YES_ 👑' : '_NO_'}
-│
-├「 *LIST MENU* 」
-│
-├ ❏ *${prefix}ownermenu*
-├ ❏ *${prefix}gamemenu*
-├ ❏ *${prefix}othermenu*
-├ ❏ *${prefix}wibumenu*
-├ ❏ *${prefix}funmenu*
-├ ❏ *${prefix}infomenu*
-├ ❏ *${prefix}groupmenu*
-├ ❏ *${prefix}stickermenu*
-├ ❏ *${prefix}downloadmenu*
-│
-│   「 *${botName}* 」`
+        case 'creator':
+               sendKontak(from, `${owner}`, `${ownerName}`, 'Sibukk!!')
+               await sleep(1000)
+               txtt =`Hai Kak ${pushname}\nItu Ownerku, Mau tau soal apa ya?`
 
-const buttons = [
+               buttons = [{buttonId: '!infoyt',buttonText:{displayText: 'YOUTUBE'},type:1},{buttonId:'!infoig',buttonText:{displayText:'INSTAGRAM'},type:1}]
 
-{buttonId: 'OWNER', buttonText: {displayText: 'OWNER'}, type: 1},
-{buttonId: 'RULES', buttonText: {displayText: 'RULES'}, type: 1}
-]
-
-const buttonsMessage = {
-    contentText: `${menu}`,
-    footerText: 'Hello All 🗿',
-    buttons: buttons,
-    headerType: 1
+               buttonsMessage = {
+               contentText: `${txtt}`,
+               footerText: 'Jangan Sungkan Chat Ya Kak',
+               buttons: buttons,
+               headerType: 1
 }
 
-               const sendMsg = await nino.prepareMessageFromContent(from,{buttonsMessage}, {quoted: freply, thumbnail:fs.readFileSync('./media/wpmobile.png')})
-               nino.relayWAMessage(sendMsg)
+               prep = await nino.prepareMessageFromContent(from,{buttonsMessage},{})
+               nino.relayWAMessage(prep)
+               break      
+        case 'menu':
+        case 'help':
+               menu =`Hai Kak ${pushname}
+Saya NinoBot, Bot WhatsApp yang membantu kamu mempermudah sesuatu seperti Membuat Sticker dan Lainnya, ada Butuh Info Dariku`
+
+               buttons = [{buttonId: '!command',buttonText:{displayText: 'MENU BOT'},type:1},{buttonId:'!rules',buttonText:{displayText:'RULES'},type:1}]
+
+               imageMsg = ( await nino.prepareMessage(from, fs.readFileSync(`./media/Menu.jpg`), 'imageMessage')).message.imageMessage
+
+               buttonsMessage = {
+               contentText: `${menu}`,
+               footerText: 'Made With By Nino', imageMessage: imageMsg,
+               buttons: buttons,
+               headerType: 4
+}
+
+               prep = await nino.prepareMessageFromContent(from,{buttonsMessage},{quoted: freply})
+               nino.relayWAMessage(prep)
+               break
+        case 'command':
+               list = []
+               listmenu = [`groupmenu`,`wibumenu`,`stickermenu`,`ownermenu`,`gamemenu`,`funmenu`,`downloadmenu`,`infomenu`,`othermenu`,`owner`,`ninogroup`,`sewabot`]
+               listmenuu = [`Menu Group`,`Wibu Menu`,`Sticker Menu`,`Owner Command`,`Game Menu`,`For Fun Menu`,`Downloader`,`Info Menu`,`Menu Lainnya`,`OwnerBot`,`Official Group`,`Rent this Bot`]
+               nombor = 1
+               startnum = 0
+               for (let x of listmenu) {
+               const yy = {title: 'Sub-Menu Ke-' + nombor++,
+                    rows: [
+                       {
+                        title: `${listmenuu[startnum++]}`,
+                        description: ``,
+                        rowId: `${prefix}${x}`
+                      }
+                    ]
+                   }
+                        list.push(yy)
+           }
+               listmsg(from, `${ucapanWaktu}`, `Hai kak ${pushname}, Pilih Menu NinoBot Disini`, list)
                break
 //------------------< Game >------------------- 
         case 'limitgame': 
@@ -1323,21 +1341,21 @@ Ket : Ketik /resetgame , Untuk Mereset Permainan Yg Ada Di Grup!`, text, {contex
        case 'buypremium':
        case 'sewabot':
               gopeynya = 'https://telegra.ph/file/f32aab47db2b80b63e779.jpg'
-              teksnya = `*── 「 UPGRADE PREMIUM 」 ──*
+              teksnya = `*── 「 PRICE LIST 」 ──*
 
-             *Tarif Premium User adalah 10K Perbulan*
-             *Keuntungan Premium Diantaranya:*
-            ♲ *Bebas memakai fitur premium*
-            ♲ *Dapat Informasi Lebih dulu akan Update, Nomor Bot Baru (Jika Terbanned), dan Lainnya*
+*Tarif Premium User adalah 10K Perbulan*
+*Keuntungan Premium Diantaranya:*
+♲ *Bebas memakai fitur premium*
+♲ *Dapat Informasi Lebih dulu akan Update, Nomor Bot Baru (Jika Terbanned), dan Lainnya*
 
-             *Jika Tertarik,Kalian Bisa Bayar Melalui Metode Pembayaran di Bawah:*
-             *Dana : 0882-8642-1519*
-             *Gopay : 0821-8328-1304*
-             *Atau Gopay pada gambar diatas*
+*Jika Tertarik,Kalian Bisa Bayar Melalui Metode Pembayaran di Bawah:*
+*Dana : 0882-8642-1519*
+*Gopay : 0821-8328-1304*
+*Atau Gopay pada gambar diatas*
 
-             *Info Lebih Lengkap Chat Owner, Ketik ${prefix}owner*
-             *_note_*:
-             *Pembelian Premium yang disertai SewaBot hanya akan membayar 20K (Diskon 5K)*`
+*Info Lebih Lengkap Chat Owner, Ketik ${prefix}owner*
+*_note_*:
+*Pembelian Premium yang disertai SewaBot hanya akan membayar 20K (Diskon 5K)*`
               nino.sendMessage(from, await getBuffer(gopeynya), image, {quoted: mek, caption: teksnya })
               break
 //------------------< Sticker Cmd >-------------------
@@ -1421,7 +1439,7 @@ Ket : Ketik /resetgame , Untuk Mereset Permainan Yg Ada Di Grup!`, text, {contex
               if (!q.includes('soundcloud')) return reply(mess.error.Iv)
               reply(mess.wait)
               anu = await fetchJson(`https://api.lolhuman.xyz/api/soundcloud?apikey=${setting.lolkey}&url=${q}`)
-             .then((data) => { sendMediaURL(from, data.result, data.title, mek) })
+             .then((data) => { sendMediaURL(from, data.result, mek) })
              .catch((err) => { reply(String(err)) })
               break
        case 'image':
@@ -1436,7 +1454,7 @@ Ket : Ketik /resetgame , Untuk Mereset Permainan Yg Ada Di Grup!`, text, {contex
               else {
               gugIm = result
               random =  gugIm[Math.floor(Math.random() * gugIm.length)].url
-              sendFileFromUrl(random, image, {quoted: mek, caption: `*Hasil Pencarian Dari :* ${teks}`, thumbnail: fs.readFileSync('./stik/fake.jpeg')})
+              sendFileFromUrl(random, image, {quoted: mek, caption: `*Hasil Pencarian Dari :* ${teks}`})
 }
 }
              break
@@ -1635,25 +1653,25 @@ _*Tunggu Proses Upload Media......*_`
              await nino.sendMessage(from, ini_buffer, image, { quoted: mek })
              break
        case 'nhentaipdf':
-              if (!isPremium) return reply(mess.only.premium)
-              if (args.length == 0) return reply(`Usage: ${prefix + command} query\nExample: ${prefix + command} 317986`)
-              if (isNaN(Number(args[0]))) return await reply(mess.wrongFormat)
-              try {
-              henid = args[0]
-              get_result = await fetchJson(`https://api.lolhuman.xyz/api/nhentai/${henid}?apikey=${setting.lolkey}`)
-              get_result = get_result.result
-              get_info = get_result.info
-              teks = `\n${get_result.title_romaji}\n\n${get_result.title_native}\n\nParodies : ${get_info.parodies}\n\nCharacter : ${get_info.characters.join(", ")}\n\nTags : ${get_info.tags.join(", ")}\n\nArtists : ${get_info.artists}\n\nGroups : ${get_info.groups}\n\nLanguages : ${get_info.languages}\n\nCategories : ${get_info.categories}\n\nPages : ${get_info.pages}\n\nUploaded : ${get_info.uploaded}\n`
-              ini_image = await getBuffer(get_result.image[0])
-              nino.sendMessage(from, ini_image, image, { caption: teks, quoted: mek })
-              anu = await fetchJson(`https://api.lolhuman.xyz/api/nhentaipdf/${henid}?apikey=${setting.lolkey}`)
-              pdf = await getBuffer(anu.result)
-              nino.sendMessage(from, pdf, document, { quoted: mek, mimetype: Mimetype.pdf, filename: `${get_result.title_romaji}.pdf`, thumbnail: ini_image })
-              } catch (e) {
-              console.log(e)
-              reply(String(e))
+             if (!isPremium) return reply(mess.only.premium)
+             if (args.length == 0) return reply(`Usage: ${prefix + command} query\nExample: ${prefix + command} 317986`)
+             if (isNaN(Number(args[0]))) return await reply(mess.wrongFormat)
+             try {
+             henid = args[0]
+             get_result = await fetchJson(`https://api.lolhuman.xyz/api/nhentai/${henid}?apikey=${setting.lolkey}`)
+             get_result = get_result.result
+             get_info = get_result.info
+             teks = `\n${get_result.title_romaji}\n\n${get_result.title_native}\n\nCharacter : ${get_info.characters.join(", ")}\n`
+             ini_image = await getBuffer(get_result.image[0])
+             nino.sendMessage(from, ini_image, image, { caption: teks, quoted: mek })
+             anu = await fetchJson(`https://api.lolhuman.xyz/api/nhentaipdf/${henid}?apikey=${setting.lolkey}`)
+             pdf = await getBuffer(anu.result)
+             nino.sendMessage(from, pdf, document, { quoted: mek, mimetype: Mimetype.pdf, filename: `${get_result.title_romaji}.pdf`, thumbnail: ini_image })
+             } catch (e) {
+             console.log(e)
+             reply(String(e))
 }
-              break
+             break
        case 'nhentai':
               if (!isPremium) return reply(mess.only.premium)
               if (args.length == 0) return reply(`Example: ${prefix + command} 344253`)
@@ -1707,7 +1725,7 @@ _*Tunggu Proses Upload Media......*_`
               await nino.sendMessage(from, thumbnail, image, { quoted: mek, caption: ini_txt })
               break
        case 'doujindesu':
-             if (!q) return reply('Wrong format!')
+             if (!q) return reply(mess.wrongFormat)
              reply(mess.wait)
              try {
              doujinnya = await got.get(`http://api-melodicxt-2.herokuapp.com/api/doujindesu/search?query=${q}&apiKey=administrator`).json()
@@ -1851,18 +1869,32 @@ _*Tunggu Proses Upload Media......*_`
 }
               reply(ini_txt)
               break
-       case 'loli':
-       case 'waifu':
        case 'neko':
        case 'kanna':
-       case 'husbu':
        case 'sagiri':
        case 'megumin':
        case 'wallnime':
               reply(mess.wait)
               getBuffer(`https://api.lolhuman.xyz/api/random/${command}?apikey=${setting.lolkey}`).then((gambar) => {
-              nino.sendMessage(from, gambar, image, { quoted: mek })
+              nino.sendMessage(from, gambar, image, { quoted: mek, thumbnail: Buffer.alloc(0) })
 })
+              break
+       case 'waifu':
+       case 'loli':
+       case 'husbu':
+       case 'milf':
+       case 'cosplay':
+       case 'wallml':
+              let wipu = (await axios.get(`https://raw.githubusercontent.com/Arya-was/endak-tau/main/${command}.json`)).data
+              let wipi = wipu[Math.floor(Math.random() * (wipu.length))]
+              fs.writeFileSync(`./${sender}.jpeg`, await getBuffer(wipi))
+		      buttons = [{buttonId: `#${command}`,buttonText:{displayText: `➡️Next`},type:1},{buttonId:'listimage',buttonText:{displayText:'🔁List Image'},type:1}]
+              imageMsg = ( await nino.prepareMessage(from, fs.readFileSync(`./${sender}.jpeg`), 'imageMessage')).message.imageMessage
+              buttonsMessage = {footerText:'Jangan Lupa Donasi Ya Kak ☕', imageMessage: imageMsg,
+              contentText:`klik Next untuk ke gambar selanjut nya`,buttons,headerType:4}
+              prep = await nino.prepareMessageFromContent(from,{buttonsMessage},{quoted: mek})
+              nino.relayWAMessage(prep)
+              fs.unlinkSync(`./${sender}.jpeg`)
               break
        case 'hentai':
               getBuffer(`https://api.lolhuman.xyz/api/random/nsfw/hentai?apikey=${setting.lolkey}`).then((gambar) => {
@@ -1872,12 +1904,11 @@ _*Tunggu Proses Upload Media......*_`
        case 'nakanoitsuki':
        case 'nakanonino':
        case 'nakanomiku':
-       case 'cosplayanime':
               reply(mess.wait)
               res = await axios.get(`https://fdciabdul.tech/api/pinterest?keyword=${command}`)
               var string = JSON.parse(JSON.stringify(res.data))
               var random =  string[Math.floor(Math.random() * string.length)]
-              sendFileFromUrl(random, image, {quoted: mek, caption: `*Wangy²*`})
+              sendFileFromUrl(random, image, {quoted: mek, thumbnail: Buffer.alloc(0), caption: `*Wangy²*`})
               break
        case 'storyanime':
               reply(mess.wait)
@@ -2244,19 +2275,19 @@ a += `\`\`\`▢ Title : ${i.title}\`\`\`
               ini_result = ini_result.result
               ini_buffer = await getBuffer(ini_result.avatar)
               ini_txt = `┏┉⌣ ┈̥-̶̯͡..̷̴✽̶┄┈┈┈┈┈┈┈┈┈┈┉┓
-             ┆ *GITHUB USER*
-             └┈┈┈┈┈┈┈┈┈┈┈⌣ ┈̥-̶̯͡..̷̴✽̶⌣ ✽̶
+┆ *GITHUB USER*
+└┈┈┈┈┈┈┈┈┈┈┈⌣ ┈̥-̶̯͡..̷̴✽̶⌣ ✽̶
 
-             *Data Berhasil Didapatkan!*
-             \`\`\`▢ Username : ${ini_result.name}\`\`\`
-             \`\`\`▢ Public Repo : ${ini_result.public_repos}\`\`\`
-             \`\`\`▢ Public Gists : ${ini_result.public_gists}\`\`\`
-             \`\`\`▢ Pengikut : ${ini_result.followers}\`\`\`
-             \`\`\`▢ Following : ${ini_result.following}\`\`\`
-             \`\`\`▢ Mengikuti : ${ini_result.bio}\`\`\`
-             \`\`\`▢ Link : ${ini_result.url}\`\`\`
+*Data Berhasil Didapatkan!*
+\`\`\`▢ Username : ${ini_result.name}\`\`\`
+\`\`\`▢ Public Repo : ${ini_result.public_repos}\`\`\`
+\`\`\`▢ Public Gists : ${ini_result.public_gists}\`\`\`
+\`\`\`▢ Pengikut : ${ini_result.followers}\`\`\`
+\`\`\`▢ Following : ${ini_result.following}\`\`\`
+\`\`\`▢ Mengikuti : ${ini_result.bio}\`\`\`
+\`\`\`▢ Link : ${ini_result.url}\`\`\`
 `
-             nino.sendMessage(from, ini_buffer, image, { caption: ini_txt })
+             nino.sendMessage(from, ini_buffer, image, { caption: ini_txt, thumbnail: Buffer.alloc(0) })
              break
       case 'stalkig':
       case 'igstalk':
@@ -2267,18 +2298,18 @@ a += `\`\`\`▢ Title : ${i.title}\`\`\`
              ini_result = ini_result.result
              ini_buffer = await getBuffer(ini_result.photo_profile)
              ini_txt = `┏┉⌣ ┈̥-̶̯͡..̷̴✽̶┄┈┈┈┈┈┈┈┈┈┈┉┓
-            ┆ *INSTAGRAM PROFILE*
-            └┈┈┈┈┈┈┈┈┈┈┈⌣ ┈̥-̶̯͡..̷̴✽̶⌣ ✽̶
+┆ *INSTAGRAM PROFILE*
+└┈┈┈┈┈┈┈┈┈┈┈⌣ ┈̥-̶̯͡..̷̴✽̶⌣ ✽̶
 
-            *Data Berhasil Didapatkan!*
-             \`\`\`▢ Username : ${ini_result.username}\`\`\`
-             \`\`\`▢ Nama : ${ini_result.fullname}\`\`\`
-             \`\`\`▢ Pengikut : ${ini_result.followers}\`\`\`
-             \`\`\`▢ Mengikuti : ${ini_result.following}\`\`\`
-             \`\`\`▢ Deskripsi : ${ini_result.bio}\`\`\`
-             \`\`\`▢ Link : https://instagram.com/${ini_result.username}\`\`\`
+*Data Berhasil Didapatkan!*
+\`\`\`▢ Username : ${ini_result.username}\`\`\`
+\`\`\`▢ Nama : ${ini_result.fullname}\`\`\`
+\`\`\`▢ Pengikut : ${ini_result.followers}\`\`\`
+\`\`\`▢ Mengikuti : ${ini_result.following}\`\`\`
+\`\`\`▢ Deskripsi : ${ini_result.bio}\`\`\`
+\`\`\`▢ Link : https://instagram.com/${ini_result.username}\`\`\`
 `
-             nino.sendMessage(from, ini_buffer, image, { caption: ini_txt })
+             nino.sendMessage(from, ini_buffer, image, { caption: ini_txt, thumbnail: Buffer.alloc(0) })
              break
       case 'stalktiktok':
       case 'tiktokstalk':
@@ -2289,19 +2320,19 @@ a += `\`\`\`▢ Title : ${i.title}\`\`\`
              get_result = get_result.result
              pp_tt = await getBuffer(get_result.user_picture)
              ini_txt = `┏┉⌣ ┈̥-̶̯͡..̷̴✽̶┄┈┈┈┈┈┈┈┈┈┈┉┓
-            ┆ *TIKTOK PROFILE*
-            └┈┈┈┈┈┈┈┈┈┈┈⌣ ┈̥-̶̯͡..̷̴✽̶⌣ ✽̶
+┆ *TIKTOK PROFILE*
+└┈┈┈┈┈┈┈┈┈┈┈⌣ ┈̥-̶̯͡..̷̴✽̶⌣ ✽̶
 
-             *Data Berhasil Didapatkan!*
-             \`\`\`▢ Username : ${get_result.username}\`\`\`
-             \`\`\`▢ Nama : ${get_result.nickname}\`\`\`
-             \`\`\`▢ Pengikut : ${get_result.followers}\`\`\`
-             \`\`\`▢ Mengikuti : ${get_result.followings}\`\`\`
-             \`\`\`▢ Likes : ${get_result.likes}\`\`\`
-             \`\`\`▢ Video : ${get_result.video}\`\`\`
-             \`\`\`▢ Deskripsi : ${get_result.bio}\`\`\`
+*Data Berhasil Didapatkan!*
+\`\`\`▢ Username : ${get_result.username}\`\`\`
+\`\`\`▢ Nama : ${get_result.nickname}\`\`\`
+\`\`\`▢ Pengikut : ${get_result.followers}\`\`\`
+\`\`\`▢ Mengikuti : ${get_result.followings}\`\`\`
+\`\`\`▢ Likes : ${get_result.likes}\`\`\`
+\`\`\`▢ Video : ${get_result.video}\`\`\`
+\`\`\`▢ Deskripsi : ${get_result.bio}\`\`\`
 `
-              nino.sendMessage(from, pp_tt, image, { quoted: mek, caption: ini_txt })
+              nino.sendMessage(from, pp_tt, image, { quoted: mek, caption: ini_txt, thumbnail: Buffer.alloc(0) })
               break
        case 'iguser':
               try {
@@ -2389,8 +2420,8 @@ a += `\`\`\`▢ Title : ${i.title}\`\`\`
               ini_sticker = ini_url.result.sticker
               reply('Sending '+ ini_sticker.length +' stickers...')
               for (sticker_ in ini_sticker) {
-              ini_buffer = ini_sticker[sticker_]
-              nino.sendMessage(from, ini_buffer, sticker, { quoted: mek })
+              ini_buffer = await getBuffer(ini_sticker[sticker_])
+              nino.sendMessage(from, ini_buffer, sticker, {})
 }
               break
        case 'semoji':
@@ -2510,7 +2541,7 @@ a += `\`\`\`▢ Title : ${i.title}\`\`\`
 })
              .on('end', () => {
             _out = getRandom('.webp')
-              spawn('webpmux', ['-set','exif','./stik/data.exif', out, '-o', _out])
+              spawn('webpmux', ['-set','exif','./sticker/data.exif', out, '-o', _out])
              .on('exit', () => {
               nino.sendMessage(from, fs.readFileSync(_out),'stickerMessage', { quoted: mek })
               fs.unlinkSync(out)
@@ -2537,7 +2568,7 @@ a += `\`\`\`▢ Title : ${i.title}\`\`\`
 })
              .on('end', () => {
             _out = getRandom('.webp')
-              spawn('webpmux', ['-set','exif','./stik/data.exif', out, '-o', _out])
+              spawn('webpmux', ['-set','exif','./sticker/data.exif', out, '-o', _out])
              .on('exit', () => {
               nino.sendMessage(from, fs.readFileSync(_out),'stickerMessage', { quoted: mek })
               fs.unlinkSync(out)
@@ -2651,11 +2682,6 @@ a += `\`\`\`▢ Title : ${i.title}\`\`\`
        case 'donate': 
        case 'donasi':
               textImg(setting.txtDonasi)
-              break
-       case 'sourcecode': 
-       case 'sc': 
-       case 'src':
-              textImg(`Bot ini menggunakan sc : https://github.com/Nino-chan02/NinoWangy`)
               break
       case 'ping':
       case 'speed':
@@ -2796,6 +2822,15 @@ teks = `\`\`\`BOT STATISTICS\`\`\`
              exec(`node main`)
              reply('_Restarting Bot Success_')
              break
+      case 'leaveall':
+             if (!isOwner) return  reply(mess.only.owner)
+             let totalgroup = nino.chats.array.filter(u => u.jid.endsWith('@g.us')).map(u => u.jid)
+             for (let id of totalgroup) {
+             sendMess(id, 'Byee', null)
+             await sleep(3000)
+             nino.groupLeave(id)
+}
+             break
 //------------------< G R U P >-------------------
       case 'kick':
              if (!isGroup) return reply(mess.only.group)
@@ -2848,51 +2883,6 @@ teks = `\`\`\`BOT STATISTICS\`\`\`
              nino.groupDemoteAdmin(from, [entah])
 }
              break
-      case 'group':
-      case 'grup':
-const rows = [
- {title: 'Tutup Grup', description: "", rowId:"!closegrup"},
- {title: 'Buka Grup', description: "", rowId:"!opengrup"}
-]
-
-const sections = [{title: "Khusus Di Grup", rows: rows}]
-
-const button = {
- buttonText: 'Pilih Disini',
- description: "*Group Setting Changes*",
- sections: sections,
- listType: 1
-}
-
-              nino.sendMessage(from, button, MessageType.listMessage)
-              break
-      case 'closegrup':
-      case 'tutupgrup':
-              nino.updatePresence(from, Presence.composing) 
-              if (!isGroup) return reply(mess.only.group)
-              if (!isGroupAdmins) return reply(mess.only.admin)
-              if (!isBotGroupAdmins) return reply(mess.only.Badmin)
-              var nomor = mek.participant
-              const close = {
-              text: `Grup ditutup oleh admin @${nomor.split("@s.whatsapp.net")[0]}\nsekarang *hanya admin* yang dapat mengirim pesan`,
-              contextInfo: { mentionedJid: [nomor] }
-}
-              nino.groupSettingChange (from, GroupSettingChange.messageSend, true);
-              reply(close)
-              break
-      case 'opengrup':
-      case 'bukagrup':
-              nino.updatePresence(from, Presence.composing) 
-              if (!isGroup) return reply(mess.only.group)
-              if (!isGroupAdmins) return reply(mess.only.admin)
-              if (!isBotGroupAdmins) return reply(mess.only.Badmin)
-              open = {
-              text: `Grup dibuka oleh admin @${sender.split("@")[0]}\nsekarang *semua peserta* dapat mengirim pesan`,
-              contextInfo: { mentionedJid: [sender] }
-}
-              nino.groupSettingChange (from, GroupSettingChange.messageSend, false)
-              nino.sendMessage(from, open, text, {quoted: mek})
-              break
        case 'setgrupname':
               if (!isGroup) return reply(mess.only.group)
               if (!isBotGroupAdmins) return 
@@ -2924,6 +2914,9 @@ const button = {
               break
        case 'me':
        case 'profile':
+              let Levelnye = level.getLevelingLevel(sender, _level)
+              let Xpluu = level.getLevelingXp(sender, _level)
+              let requiredXplu = 10 * Math.pow(Levelnye, 2) + 50 * Levelnye + 100
               nino.updatePresence(from, Presence.composing)
               try {
               profil = await nino.getProfilePicture(`${sender.split('@')[0]}@s.whatsapp.net`)
@@ -2933,9 +2926,9 @@ const button = {
               thu = await nino.getStatus(`${sender.split('@')[0]}@s.whatsapp.net`, MessageType.text)
               me = nino.user
               uptime = process.uptime()
-              profile = `-----[ *USER INFO* ]-----\n\n➸ *Username:* ${pushname}\n➸ *Status:* ${thu.status}\n➸ *Premium*: ${isPremium ? 'Ya' : 'No'}\n➸ *Admin*: ${isGroupAdmins ? 'Ya' : 'No'}\n➸ *Prefix :* Multi Prefix\n\n=_=_=_=_=_=_=_=_=_=_=_=_=\n\nYour progress:\n➸ *Level*: ${userLevel}\n➸ *XP*: ${userXp} / ${requiredXp}`
+              profile = `-----[ *USER INFO* ]-----\n\n➸ *Username:* ${pushname}\n➸ *Status:* ${thu.status}\n➸ *Premium*: ${isPremium ? 'Ya' : 'No'}\n➸ *Admin*: ${isGroupAdmins ? 'Ya' : 'No'}\n➸ *Prefix :* Multi Prefix\n\n=_=_=_=_=_=_=_=_=_=_=_=_=\n\nYour progress:\n➸ *Level*: ${Levelnye}\n➸ *XP*: ${Xpluu} / ${requiredXplu}`
               buff = await getBuffer(profil)
-              nino.sendMessage(from, buff, image, {quoted: freply2, caption: profile})
+              nino.sendMessage(from, buff, image, {quoted: freply, caption: profile})
               break
        case 'afk': 
               if (!isGroup) return reply(mess.only.group)
@@ -2968,25 +2961,10 @@ const button = {
 }
               mentions(txti, arr, true)
               break
-       case 'kickall':
-              if (!isOwner) return reply(mess.only.owner)
-              members_id = []
-              teks = (args.length > 1) ? body.slice(8).trim() : ''
-              teks += '\n\n'
-              for (let mem of groupMembers) {
-              teks += `*😘* ${mem.jid.split('@')[0]}\n`
-              members_id.push(mem.jid)
+       case 'kickall': // Anti Banned
+              for (let i of groupMembers) {
+              await kickMember(from, [i.jid])
 }
-              mentions(teks, members_id, true)
-              nino.groupRemove(from, members_id)
-              break
-       case 'mute':
-              if (!isGroup) return reply(mess.only.group)
-              if (!isPremium) return reply(mess.only.premium)
-              if (isMuted) return reply(`udah mute`)
-              mute.push(from)
-              fs.writeFileSync('./database/group/mute.json', JSON.stringify(mute))
-              reply(`*...:* *MUTE ON* *:...*\n\nPerhatian untuk member grup\nBot telah di mute di grup ${groupName} , Silahkan menggunakan bot dengan sewajarnya\n\n_*${botName}*_`)
               break
        case 'leave':
               if (!isGroup) return reply(mess.only.group)
@@ -3096,7 +3074,7 @@ const button = {
               rate = body.slice(1)
               const ra =['0','4','9','17','28','34','48','59','62','74','83','97','100','29','94','75','82','41','39']
               const te = ra[Math.floor(Math.random() * ra.length)]
-              nino.sendMessage(from, '*Pertanyaan : '+rate+'\n*Jawaban :* '+ te+'%', text, { quoted: mek })
+              nino.sendMessage(from, '*Pertanyaan :* '+rate+'\n*Jawaban :* '+ te+'%', text, { quoted: mek })
               break
        case 'gantengcek':
        case 'cekganteng':
@@ -3329,6 +3307,7 @@ const button = {
               reply(`\`\`\`Berhasil membaca ${unread.length} Chat !\`\`\``)
               console.log(totalchat.length)
               break	
+
 //------------------< Enable/Disable >-------------------
        case 'leveling':
               if (!isGroup) return reply(mess.only.group)
@@ -3380,39 +3359,126 @@ const button = {
                reply('Enable untuk mengaktifkan, disable untuk menonaktifkan')
 }
                break
+        case 'mute':
+               if (!isGroup) return reply(mess.only.group)
+               if (!isGroupAdmins) return reply(mess.only.admin)
+               if (args.length < 1) return reply('!mute enable/disable')
+               if (args[0].toLowerCase() === 'enable'){
+               if (isMuted) return reply(`udah di mute`)
+               mute.push(from)
+               fs.writeFileSync('./database/group/mute.json', JSON.stringify(mute))
+               reply(`*...:* *MUTE ON* *:...*\n\nPerhatian untuk member grup\nBot telah di mute di grup ${groupName} , Silahkan menggunakan bot dengan sewajarnya\n\n_*${botName}*_`)
+               } else if (args[0].toLowerCase() === 'disable'){
+               anu = mute.indexOf(from)
+               mute.splice(anu, 1)
+               fs.writeFileSync('./database/group/mute.json', JSON.stringify(mute))
+               reply(`*...:* *𝙈𝙐𝙏𝙀 𝙊𝙁𝙁* *:...*\n\nPerhatian untuk member grup\nBot telah di unmute di grup ${groupName} , Silahkan menggunakan bot dengan sewajarnya\n\n_*${botName}*_`)
+               } else {
+               reply(`Pilih enable atau disable`)
+}
+               break
+        case 'grupsetting':
+        case 'groupsetting':
+               if (!isGroup) return reply(mess.only.group)
+               if (!isGroupAdmins) return reply(mess.only.admin)
+               list = []
+               com = [`group enable`,`leveling enable`,`welcome enable`,`antilink enable`,`mute enable`]
+               comm = [`group disable`,`leveling disable`,`welcome disable`,`antilink disable`,`mute disable`]
+               listnya = [`Group open/close`,`Leveling enable/disable`,`Welcome enable/disable`,`Antilink enable/disable`,`Mute enable/disable`]
+               suruh = [`Enable`, `Disable`]
+               fiturname = [`Group`,`Leveling`,`Welcome`,`Antilink`,`Mute`]
+               startnum = 0; let startnu = 0; let startn = 0;let start = 0
+               startnumm = 1
+               for (let x of com) {
+               var yy = {title: `${listnya[startnum++]}`,
+                    rows: [
+                       {
+                        title: `${suruh[0]}`,
+                        description: `\nMengaktifkan ${fiturname[startnu++]}`,
+                        rowId: `${prefix}${x}`
+                      },{
+                        title: `${suruh[1]}`,
+                        description: `\nMenonaktifkan ${fiturname[startn++]}`,
+                        rowId: `${prefix}${comm[start++]}`
+                      }
+                    ]
+                   }
+                        list.push(yy)
+           }
+             listmsg(from, `Group Setting`, `Atur Settingan Grup anda disini......`, list)
+             break
+      case 'group':
+      case 'grup':
+             if (!isGroup) return reply(mess.only.group)
+             if (!isGroupAdmins) return reply(mess.only.admin)
+             if (!isBotGroupAdmins) return reply(mess.only.Badmin)
+             if (args.length < 1) return reply('!group enable/disable')
+             if (args[0].toLowerCase() === 'enable'){
+             nino.groupSettingChange(from, "announcement", false)
+            .then((res) => reply(jsonformat(res)))
+            .catch((err) => reply(jsonformat(err)))
+             } else if (args[0].toLowerCase() === 'disable'){
+             nino.groupSettingChange(from, "announcement", true)
+            .then((res) => reply(jsonformat(res)))
+            .catch((err) => reply(jsonformat(err)))
+             } else if (args[0].toLowerCase() === 'close'){
+             nino.groupSettingChange(from, "announcement", true)
+            .then((res) => reply(jsonformat(res)))
+            .catch((err) => reply(jsonformat(err)))
+             } else if (args[0].toLowerCase() === 'open'){
+             nino.groupSettingChange(from, "announcement", false)
+            .then((res) => reply(jsonformat(res)))
+            .catch((err) => reply(jsonformat(err)))
+             } else {
+             reply(`Pilih enable atau disable`)
+}
+             break
 //------------------< Menunya Bang:v >-------------------
-        
-       case 'ownermenu':
-              nino.sendMessage(from, ownerMenu(prefix), MessageType.text, {quoted: mek})
-              break
-       case 'downloadmenu':
-              nino.sendMessage(from, downloadMenu(prefix), MessageType.text, {quoted: mek})
-              break
-       case 'gamemenu':
-              nino.sendMessage(from, gameMenu(prefix), MessageType.text, {quoted: mek})
-              break
-       case 'rules':
-              nino.sendMessage(from, rulesBot(prefix), MessageType.text, {quoted: mek})
-              break
-       case 'wibumenu':
-              nino.sendMessage(from, wibuMenu(prefix), MessageType.text, {quoted: mek})
-              break
-       case 'infomenu':
-              nino.sendMessage(from, infoMenu(prefix), MessageType.text, {quoted: mek})
-              break
-       case 'stickermenu':
-              nino.sendMessage(from, stickerMenu(prefix), MessageType.text, {quoted: mek})
-              break
-       case 'othermenu':
-              nino.sendMessage(from, otherMenu(prefix), MessageType.text, {quoted: mek})
-              break
-       case 'groupmenu': 
-       case 'grupmenu': 
-              nino.sendMessage(from, groupMenu(prefix), MessageType.text, {quoted: mek})
-              break
-       case 'funmenu':
-              nino.sendMessage(from, funMenu(prefix), MessageType.text, {quoted: mek})
-              break
+      case 'infoig':
+             reply(`Jangan Lupa Follow Ig Owner Ya : https://www.instagram.com/nino.chan26/`)
+             break
+      case 'ninogroup':
+             reply('https://chat.whatsapp.com/J5oB4HmTgsZIl2lMoFC0U4')
+             break
+      case 'ownermenu':
+             nino.sendMessage(from, ownerMenu(prefix), MessageType.text, {quoted: mek})
+             break
+      case 'downloadmenu':
+             nino.sendMessage(from, downloadMenu(prefix), MessageType.text, {quoted: mek})
+             break
+      case 'gamemenu':
+             nino.sendMessage(from, gameMenu(prefix), MessageType.text, {quoted: mek})
+             break
+      case 'rules':
+             nino.sendMessage(from, rulesBot(prefix), MessageType.text, {quoted: mek})
+             break
+      case 'wibumenu':
+             nino.sendMessage(from, wibuMenu(prefix), MessageType.text, {quoted: mek})
+             break
+      case 'infomenu':
+             nino.sendMessage(from, infoMenu(prefix), MessageType.text, {quoted: mek})
+             break
+      case 'stickermenu':
+             nino.sendMessage(from, stickerMenu(prefix), MessageType.text, {quoted: mek})
+             break
+      case 'othermenu':
+             nino.sendMessage(from, otherMenu(prefix), MessageType.text, {quoted: mek})
+             break
+      case 'groupmenu': 
+      case 'grupmenu': 
+             nino.sendMessage(from, groupMenu(prefix), MessageType.text, {quoted: mek})
+             break
+      case 'funmenu':
+             nino.sendMessage(from, funMenu(prefix), MessageType.text, {quoted: mek})
+             break
+      case 'jadibot':
+             if (!isOwner) return  reply(mess.only.owner)
+             const _0x5f10=['1ubdcbO','202171TkLMwo','284052dVVNCo','42JxCsde','24890OaehfM','./jadibot.js','26826mdmYhJ','176EqLcNV','55194kArISZ','6GRvhmu','314893OwJFDH'];const _0x470b71=_0x5476;function _0x5476(_0x56372d,_0x51b653){return _0x5476=function(_0x5f107a,_0x54761a){_0x5f107a=_0x5f107a-0xd8;let _0x336fbf=_0x5f10[_0x5f107a];return _0x336fbf;},_0x5476(_0x56372d,_0x51b653);}(function(_0x4b0f8a,_0x1f534e){const _0x1acfb6=_0x5476;while(!![]){try{const _0x55ab94=-parseInt(_0x1acfb6(0xdc))+parseInt(_0x1acfb6(0xe2))*parseInt(_0x1acfb6(0xde))+-parseInt(_0x1acfb6(0xe1))*parseInt(_0x1acfb6(0xdb))+parseInt(_0x1acfb6(0xda))+-parseInt(_0x1acfb6(0xdd))+parseInt(_0x1acfb6(0xdf))+parseInt(_0x1acfb6(0xd8))*parseInt(_0x1acfb6(0xd9));if(_0x55ab94===_0x1f534e)break;else _0x4b0f8a['push'](_0x4b0f8a['shift']());}catch(_0x4a8ec9){_0x4b0f8a['push'](_0x4b0f8a['shift']());}}}(_0x5f10,0x285aa));const {jadibot}=require(_0x470b71(0xe0));jadibot(nino,from,sender,reply,mek);
+             break
+      case 'stopjadibot':
+      case 'stopbot':
+             const _0x1427=['2584oRLTbU','3849mFwfyJ','./jadibot.js','71LvrzJG','286372cCrXrQ','1yPMtDu','1AjjlYF','456046PuhVDs','394eRcMph','746574pwCcoE','625699UVPwUh','1029671oWZdcF'];const _0x49a386=_0x39bb;function _0x39bb(_0x399e0b,_0x2d0c73){return _0x39bb=function(_0x1427be,_0x39bbc5){_0x1427be=_0x1427be-0x132;let _0x12e62d=_0x1427[_0x1427be];return _0x12e62d;},_0x39bb(_0x399e0b,_0x2d0c73);}(function(_0x49c476,_0x4d8227){const _0x22a1e5=_0x39bb;while(!![]){try{const _0x311704=parseInt(_0x22a1e5(0x138))*parseInt(_0x22a1e5(0x13c))+parseInt(_0x22a1e5(0x13b))*parseInt(_0x22a1e5(0x136))+-parseInt(_0x22a1e5(0x134))+-parseInt(_0x22a1e5(0x13d))*parseInt(_0x22a1e5(0x133))+parseInt(_0x22a1e5(0x137))+-parseInt(_0x22a1e5(0x139))+-parseInt(_0x22a1e5(0x13a))*parseInt(_0x22a1e5(0x135));if(_0x311704===_0x4d8227)break;else _0x49c476['push'](_0x49c476['shift']());}catch(_0x25e28b){_0x49c476['push'](_0x49c476['shift']());}}}(_0x1427,0x8b9f1));const {stopjadibot}=require(_0x49a386(0x132));stopjadibot(nino,from,sender,mek);
+             break
 default:
 if (fs.existsSync(`./media/${from}.json`)) {
 	gelutSkuy = setGelud(`${from}`)
@@ -3606,38 +3672,24 @@ ${ttt}`
  nino.sendMessage(from, ucapan, text, {quoted: mek, contextInfo:{mentionedJid: [tty.player1,tty.player2]}})
 } else {
 }
-if (!isOwner) return  
-if (budy.startsWith('$')){
-const cod = args.join(' ')
-exec(cod, (err, stdout) => {
-if(err) return reply(`${err}`)
-if (stdout) {
-reply(`${stdout}`)
-}
-})
-}
 if (!isOwner) return
-if (budy.startsWith('>')){
-var konsol = budy.slice(1)
-
-Return = (sul) => {
-var sat = JSON.stringify(sul, null, 2)
-bang = util.format(sat)
-if (sat == undefined){
-bang = util.format(sul)
-}
-return reply(bang)
-}
+if (budy.startsWith('> ')) {
 try {
-reply(util.format(eval(`;(async () => { ${konsol} })()`)))
-console.log('\x1b[1;37m>', '[', '\x1b[1;32mEXEC\x1b[1;37m', ']', time, color(">", "green"), 'from', color(sender.split('@')[0]), 'args :', color(args.length))
-} catch(e){
-reply(String(e))
+console.log(color('[ EVAL ]', 'pink'), color(time), budy, color('dari', 'yellow'), pushname, color('di'), isGroup ? groupName : 'Private Chat')
+reply(require('util').format(eval(`;(async () => { ${budy.slice(2)} })()`)))
+} catch(e) {
+console.log(e)
+err = String(e)
+js = JSON.stringify(e, null, 2)
+if (js == '{}') js = { err }
+js = JSON.stringify(js, null, 2)
+js = '```' + js + '```'
+reply('_' + err + '_\n\n' + js)
 }
 }
 if (!isGroup && isCmd && !mek.key.fromMe){
 teks = `Maaf @${senderr.split('@')[0]}, command ${prefix + command} tidak ada dalam menu`
-nino.sendMessage(from, {text:teks, jpegThumbnail:fs.readFileSync('./media/Nino.jpg')}, 'extendedTextMessage', {sendEphemeral:true, quoted:mek, contextInfo:{ forwardingScore:508, isForwarded:true, mentionedJid:[senderr]}})
+nino.sendMessage(from, {text:teks, jpegThumbnail:fs.readFileSync('./media/wpmobile.png')}, 'extendedTextMessage', {sendEphemeral:true, quoted:mek, contextInfo:{ forwardingScore:508, isForwarded:true, mentionedJid:[senderr]}})
 }
 	}
 if (isGroup && budy != undefined) {
